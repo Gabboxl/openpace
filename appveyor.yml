@@ -24,7 +24,6 @@ install:
         # If AppVeyor comes with OpenSSL 1.1.0 installed
         #$env:LIBCRYPTO="libcrypto32MD.lib"
         $env:LIBCRYPTO="libeay32MD.lib"
-        $env:PYTHON_PLATFORM=""
       } Else {
         $env:VCVARS_PLATFORM="amd64"
         $env:OPENSSL_PLATFORM="Win64"
@@ -32,12 +31,9 @@ install:
         # If AppVeyor comes with OpenSSL 1.1.0 installed
         #$env:LIBCRYPTO="libcrypto64MD.lib"
         $env:LIBCRYPTO="libeay32MD.lib"
-        $env:PYTHON_PLATFORM="-x64"
       }
-  - set PATH=C:\Python38%PYTHON_PLATFORM%;%PATH%
-  - set PYTHON_INCLUDE=C:\Python38%PYTHON_PLATFORM%\include
-  - set PYTHON_LIB=C:\Python38%PYTHON_PLATFORM%\libs\python38.lib
-  - set ARTIFACT=%APPVEYOR_PROJECT_NAME%_%OPENPACE_PLATFORM%-vs%VSVER%-python3
+  - set PATH=%PATH%
+  - set ARTIFACT=%APPVEYOR_PROJECT_NAME%_%OPENPACE_PLATFORM%-vs%VSVER%
   - set OPENSSL_DIR=C:\OpenSSL-%OPENSSL_PLATFORM%
   - for /f "usebackq tokens=*" %%a in (`cygpath -u %OPENSSL_DIR%`) do set OPENSSL_CYGDIR=%%a
   - set OPENPACE_DIR=C:\%ARTIFACT%
@@ -49,7 +45,6 @@ install:
   - bash -c "pacman --needed --noconfirm --sync pacman-mirrors"
   - bash -c "pacman --needed --noconfirm --sync autoconf automake libtool gengetopt swig"
 
-  - python -V
   - swig -version
 
   - ps: $env:VSCOMNTOOLS=(Get-Content ("env:VS" + "$env:VSVER" + "0COMNTOOLS"))
@@ -77,10 +72,8 @@ build_script:
   # gengetopt.exe --include-getopt --file-name=cvc-create-cmdline --input= cvc-create.ggo
   - cl /I%OPENSSL_DIR%\include /I. libeacMD.lib %OPENSSL_DIR%\lib\VC\static\%LIBCRYPTO% user32.lib advapi32.lib crypt32.lib gdi32.lib %CL_OPTIONS% %OPENSSL_1_1_0_FLAGS% cvc-create.c read_file.c cvc-create-cmdline.c vc.c
   - cd ..
-  - cd bindings\python\
-  - swig -python -outdir . -I.. eac.i
-  - cl /I%OPENSSL_DIR%\include /I%PYTHON_INCLUDE% /I..\..\src %CL_OPTIONS% %OPENSSL_1_1_0_FLAGS% /c eac_wrap.c ..\..\src\ssl_compat.c ..\..\src\vc.c
-  - link /out:_eac.pyd /dll eac_wrap.obj ssl_compat.obj vc.obj %PYTHON_LIB% ..\..\src\libeacMD.lib %OPENSSL_DIR%\lib\VC\static\%LIBCRYPTO% user32.lib advapi32.lib crypt32.lib gdi32.lib
+  - cl /I%OPENSSL_DIR%\include /I..\..\src %CL_OPTIONS% %OPENSSL_1_1_0_FLAGS% /c eac_wrap.c ..\..\src\ssl_compat.c ..\..\src\vc.c
+  - link /out:_eac.pyd /dll eac_wrap.obj ssl_compat.obj vc.obj ..\..\src\libeacMD.lib %OPENSSL_DIR%\lib\VC\static\%LIBCRYPTO% user32.lib advapi32.lib crypt32.lib gdi32.lib
   - cd ..\..
 
   # package all artifacts
@@ -90,18 +83,11 @@ build_script:
   - bash -c "cp    src/eactest.exe                       $DESTDIR/bin"
   - bash -c "cp    src/cvc-create.exe                    $DESTDIR/bin"
   - bash -c "cp    src/cvc-print.exe                     $DESTDIR/bin"
-  - bash -c "tail  -n +2 bindings/python/cvc_rehash.in > $DESTDIR/bin/cvc_rehash"
-  - bash -c "cp    bindings/python/eac.py                $DESTDIR/bin"
-  - bash -c "cp    bindings/python/_eac.pyd              $DESTDIR/bin"
-  - bash -c "cp    bindings/python/example.py            $DESTDIR/bin"
-  - bash -c "cp    bindings/python/chat.py               $DESTDIR/bin"
-  - bash -c "cp    bindings/python/pace_entity.py        $DESTDIR/bin"
   - bash -c "$OPENSSL_CYGDIR/bin/openssl.exe version >>  $DESTDIR/dependencies.txt"
 
   # tests
   - bash -c "                                            $DESTDIR/bin/eactest.exe"
   - bash -c "for    i in $DESTDIR/etc/eac/cvc/*;     do  $DESTDIR/bin/cvc-print --cvc=$i --cvc-dir=$DESTDIR/etc/eac/cvc/; done"
-  - bash -c "python                                      bindings/python/test.py"
 
   # push the binaries
   - 7z a %ARTIFACT%.zip %OPENPACE_DIR% > nul
