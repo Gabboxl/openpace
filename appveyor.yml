@@ -87,6 +87,8 @@ build_script:
   - bash -c "$OPENSSL_CYGDIR/bin/openssl.exe version >>  $DESTDIR/dependencies.txt"
   - bash -c "cp    src/cvc-create-cmdline.c                  $DESTDIR/lib"
   - bash -c "cp    src/cvc-create-cmdline.h                  $DESTDIR/lib"
+  - bash -c "cp    src/cvc-print-cmdline.c                  $DESTDIR/lib"
+  - bash -c "cp    src/cvc-print-cmdline.h                  $DESTDIR/lib"
 
   # tests
   - bash -c "                                            $DESTDIR/bin/eactest.exe"
